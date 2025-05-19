@@ -1,0 +1,175 @@
+# 📦 Open-Pit Mining Dashboard Boilerplate
+
+This is a backend + frontend starter template for an **Open-Pit Mining Monitoring Dashboard** using:
+- FastAPI (Python backend)
+- PostgreSQL with PostGIS extension
+- React + MapboxGL frontend (light starter)
+
+---
+
+## 📁 Folder Structure
+
+```bash
+openpit-dashboard/
+├── backend/
+│   ├── main.py
+│   ├── models.py
+│   ├── database.py
+│   ├── crud.py
+│   └── routers/
+│       ├── sites.py
+│       ├── survey.py
+│       └── equipment.py
+├── frontend/
+│   ├── public/
+│   └── src/
+│       ├── App.js
+│       ├── components/
+│       └── pages/
+├── db/
+│   └── init.sql
+├── docker-compose.yml
+├── README.md
+└── .env
+```
+
+---
+
+## 🚀 backend/main.py (FastAPI Entry Point)
+
+```python
+from fastapi import FastAPI
+from routers import sites, survey, equipment
+
+app = FastAPI()
+
+app.include_router(sites.router)
+app.include_router(survey.router)
+app.include_router(equipment.router)
+
+@app.get("/")
+def root():
+    return {"message": "Open-Pit Mining Dashboard API"}
+```
+
+---
+
+## 🗃️ db/init.sql (PostgreSQL + PostGIS schema)
+
+```sql
+CREATE EXTENSION IF NOT EXISTS postgis;
+
+CREATE TABLE MineSite (
+    id SERIAL PRIMARY KEY,
+    name TEXT,
+    location GEOMETRY(Point, 4326),
+    area_ha FLOAT
+);
+
+CREATE TABLE DroneSurvey (
+    id SERIAL PRIMARY KEY,
+    site_id INT REFERENCES MineSite(id),
+    survey_date DATE,
+    orthomosaic_url TEXT,
+    dsm_url TEXT,
+    pointcloud_url TEXT
+);
+
+CREATE TABLE EquipmentLog (
+    id SERIAL PRIMARY KEY,
+    date DATE,
+    equipment_id TEXT,
+    operator_name TEXT,
+    hours_operated FLOAT,
+    fuel_used FLOAT,
+    status TEXT
+);
+```
+
+---
+
+## 🌍 frontend/src/App.js (React Entry)
+
+```javascript
+import React from "react";
+import Map from "./components/Map";
+
+function App() {
+  return (
+    <div className="App">
+      <h2>Open-Pit Mining Dashboard</h2>
+      <Map />
+    </div>
+  );
+}
+
+export default App;
+```
+
+---
+
+## 🗺️ frontend/src/components/Map.js (MapboxGL Map)
+
+```javascript
+import React, { useEffect } from "react";
+import mapboxgl from "mapbox-gl";
+
+mapboxgl.accessToken = process.env.REACT_APP_MAPBOX_TOKEN;
+
+const Map = () => {
+  useEffect(() => {
+    const map = new mapboxgl.Map({
+      container: "map-container",
+      style: "mapbox://styles/mapbox/streets-v11",
+      center: [110.36, -7.8], // Sample center (Java, Indonesia)
+      zoom: 10,
+    });
+  }, []);
+
+  return <div id="map-container" style={{ height: "500px" }} />;
+};
+
+export default Map;
+```
+
+---
+
+## 🐳 docker-compose.yml
+
+```yaml
+version: "3.8"
+
+services:
+  db:
+    image: postgis/postgis
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: miningdb
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./db:/docker-entrypoint-initdb.d
+
+  backend:
+    build: ./backend
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "3000:3000"
+```
+
+---
+
+You can build from here by:
+- Adding more tables (Alerts, Sensors, Pit Geometry)
+- Extending FastAPI routes
+- Linking Mapbox layers with drone outputs
+- Adding login/auth system (JWT or Firebase)
+
+Let me know if you'd like the actual files zipped or a deployment guide (to Vercel, Render, or Azure).
